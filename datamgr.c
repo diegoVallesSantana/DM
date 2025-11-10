@@ -1,14 +1,9 @@
 #include "config.h"
+#include "dplist.h"
 #include "datamgr.h"
 
 extern dplist_t *sensor_list;
 
-/**
- *  This method holds the core functionality of your datamgr. It takes in 2 file pointers to the sensor files and parses them.
- *  When the method finishes all data should be in the internal pointer list and all log messages should be printed to stderr.
- *  \param fp_sensor_map file pointer to the map file
- *  \param fp_sensor_data file pointer to the binary data file
- */
 void datamgr_parse_sensor_files(FILE *fp_sensor_map, FILE *fp_sensor_data){
 
     if (fp_sensor_map == NULL || fp_sensor_data == NULL) {
@@ -16,10 +11,9 @@ void datamgr_parse_sensor_files(FILE *fp_sensor_map, FILE *fp_sensor_data){
         return;
     }
 
-    // 1. Parse the room-sensor mapping file (text)
     uint16_t room_id, sensor_id;
     while (fscanf(fp_sensor_map, "%hu %hu", &room_id, &sensor_id) == 2) {
-        sensor_node_t *node = malloc(sizeof(sensor_node_t));
+        sensor_data_t *node = malloc(sizeof(sensor_data_t));
 
         if (!node) {
             fprintf(stderr, "Error: memory allocation failed for sensor node.\n");
@@ -37,21 +31,56 @@ void datamgr_parse_sensor_files(FILE *fp_sensor_map, FILE *fp_sensor_data){
         dpl_insert_at_index(sensor_list, node, dpl_size(sensor_list), false);
     }
 
-    //TODO
+    uint16_t id;
+    double temp;
+    time_t ts;
 
 
+    while ( fread(&id, sizeof(uint16_t), 1, fp_sensor_data) == 1 &&
+        fread(&temp, sizeof(double),   1, fp_sensor_data) == 1 &&
+        fread(&ts, sizeof(time_t),     1, fp_sensor_data) == 1 ) {
+
+        if (sensor_list == NULL)
+        {
+            ERROR_HANDLER("datamgr_parse_sensor_files Part 2: sensor list not initialized");
+        }
+
+        dplist_node_t *dummy = sensor_list->head;
+        bool found = false;
+        while (dummy != NULL)
+        {
+            sensor_data_t *data = (sensor_data_t *) dummy->element;
+            if (data->id == id)
+            {
+                found = true;
+                data->value = temp;
+                data->ts = ts;
+                data->history[data->history_index] = temp;
+                data->history_index = (data->history_index + 1) % RUN_AVG_LENGTH;
+                if (data->history_count < RUN_AVG_LENGTH) data->history_count++;
+                data->running_avg = datamgr_get_avg(id);
+                if (data->history_count == RUN_AVG_LENGTH) {
+                    if (data->running_avg <SET_MIN_TEMP){
+                    fprintf(stderr, "Warning: sensor %hu in room %hu is too cold\n", id, data->room);}
+                    if (data->running_avg >SET_MAX_TEMP){
+                    fprintf(stderr, "Warning: sensor %hu in room %hu is too warm\n", id, data->room);}
+                }
+                break;
+            }
+            dummy = dummy->next;
+        }
+        if (!found) {fprintf(stderr, "Warning: sensor %hu not in map\n", id);}
+    }
 
 }
 
 
 void datamgr_free(){
-
     if (sensor_list == NULL) return;
 
     dpl_free(&sensor_list, true);
 
     sensor_list = NULL;
-
 }
 
 
@@ -72,10 +101,8 @@ uint16_t datamgr_get_room_id(sensor_id_t sensor_id){
         }
     }
 
-    // If we reach here → sensor_id not found → error
     ERROR_HANDLER("datamgr_get_room_id: sensor ID does not exist");
 
-    // Function will never reach here, but avoid compiler warning:
     return 0;
 }
 
@@ -109,16 +136,33 @@ sensor_value_t datamgr_get_avg(sensor_id_t sensor_id){
     return 0;
 }
 
-/**
- * Returns the time of the last reading for a certain sensor ID
- * Use ERROR_HANDLER() if sensor_id is invalid
- * \param sensor_id the sensor id to look for
- * \return the last modified timestamp for the given sensor
- */
-time_t datamgr_get_last_modified(sensor_id_t sensor_id);
+time_t datamgr_get_last_modified(sensor_id_t sensor_id)
+{
+    if (sensor_list == NULL)
+    {
+        ERROR_HANDLER("datamgr_get_last_modified: sensor list not initialized");
+    }
 
-/**
- *  Return the total amount of unique sensor ID's recorded by the datamgr
- *  \return the total amount of sensors
- */
-int datamgr_get_total_sensors();
+    dplist_node_t *dummy = sensor_list->head;
+
+    while (dummy != NULL)
+    {
+        sensor_data_t *data = (sensor_data_t *) dummy->element;
+        if (data->id == sensor_id)
+        {
+            return data->ts;
+        }
+        dummy = dummy->next;
+    }
+    ERROR_HANDLER("datamgr_get_last_modified: sensor_id not found");
+    return 0;
+}
+
+int datamgr_get_total_sensors(){
+    if (sensor_list == NULL)
+    {
+        ERROR_HANDLER("datamgr_get_total_sensors: sensor list not initialized");
+    }
+    return dpl_size(sensor_list);
+}
+

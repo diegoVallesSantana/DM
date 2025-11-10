@@ -202,15 +202,6 @@ dplist_node_t *dpl_get_reference_at_index(dplist_t *list, int index) {
 }
 
 
-/** Returns the element contained in the list node with reference 'reference' in the list.
- * - If the list is empty, NULL is returned.
- * - If 'list' is is NULL, NULL is returned.
- * - If 'reference' is NULL, NULL is returned.
- * - If 'reference' is not an existing reference in the list, NULL is returned.
- * \param list a pointer to the list
- * \param reference a pointer to a certain node in the list
- * \return the element contained in the list node or NULL
- */
 void *dpl_get_element_at_reference(dplist_t *list, dplist_node_t *reference) {
     if (list == NULL){return NULL;}
     if (list->sizeOfList ==0){return NULL;}
