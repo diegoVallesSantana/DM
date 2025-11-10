@@ -1,23 +1,8 @@
-
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#include "dplist.h"
+#include "lib/dplist.h"
 
-
-struct dplist_node {
-    dplist_node_t *prev, *next;
-    void *element;
-};
-
-struct dplist {
-    dplist_node_t *head;
-    int sizeOfList;
-    void *(*element_copy)(void *src_element);
-    void (*element_free)(void **element);
-    int (*element_compare)(void *x, void *y);
-};
 
 dplist_t *dpl_create(// callback functions
         void *(*element_copy)(void *src_element),

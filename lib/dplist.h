@@ -5,6 +5,19 @@
 #ifndef _DPLIST_H_
 #define _DPLIST_H_
 
+struct dplist_node {
+    dplist_node_t *prev, *next;
+    void *element;
+};
+
+struct dplist {
+    dplist_node_t *head;
+    int sizeOfList;
+    void *(*element_copy)(void *src_element);
+    void (*element_free)(void **element);
+    int (*element_compare)(void *x, void *y);
+};
+
 typedef enum {
     false, true
 } bool; // or use C99 #include <stdbool.h>

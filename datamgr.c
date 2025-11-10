@@ -1,10 +1,20 @@
+#include "lib/dplist.h"
 #include "config.h"
-#include "dplist.h"
 #include "datamgr.h"
 
-extern dplist_t *sensor_list;
+static void element_free(void **element) {
+    free(*element);
+    *element = NULL;
+}
+
+dplist_t *sensor_list = NULL;
 
 void datamgr_parse_sensor_files(FILE *fp_sensor_map, FILE *fp_sensor_data){
+    if (sensor_list == NULL)
+    {
+        sensor_list = dpl_create(NULL, element_free, NULL);
+    }
+
 
     if (fp_sensor_map == NULL || fp_sensor_data == NULL) {
         fprintf(stderr, "Error: invalid file pointers to datamgr_parse_sensor_files.\n");
@@ -40,11 +50,6 @@ void datamgr_parse_sensor_files(FILE *fp_sensor_map, FILE *fp_sensor_data){
         fread(&temp, sizeof(double),   1, fp_sensor_data) == 1 &&
         fread(&ts, sizeof(time_t),     1, fp_sensor_data) == 1 ) {
 
-        if (sensor_list == NULL)
-        {
-            ERROR_HANDLER("datamgr_parse_sensor_files Part 2: sensor list not initialized");
-        }
-
         dplist_node_t *dummy = sensor_list->head;
         bool found = false;
         while (dummy != NULL)
@@ -58,13 +63,20 @@ void datamgr_parse_sensor_files(FILE *fp_sensor_map, FILE *fp_sensor_data){
                 data->history[data->history_index] = temp;
                 data->history_index = (data->history_index + 1) % RUN_AVG_LENGTH;
                 if (data->history_count < RUN_AVG_LENGTH) data->history_count++;
-                data->running_avg = datamgr_get_avg(id);
+
+                double sum = 0;
                 if (data->history_count == RUN_AVG_LENGTH) {
+                    for (int i = 0; i < RUN_AVG_LENGTH; i++) {
+                        sum += data->history[i];
+                    }
+                    data->running_avg = sum / RUN_AVG_LENGTH;
+
                     if (data->running_avg <SET_MIN_TEMP){
-                    fprintf(stderr, "Warning: sensor %hu in room %hu is too cold\n", id, data->room);}
+                    fprintf(stderr, "Sensor %hu in room %hu is too cold\n", id, data->room);}
                     if (data->running_avg >SET_MAX_TEMP){
-                    fprintf(stderr, "Warning: sensor %hu in room %hu is too warm\n", id, data->room);}
+                    fprintf(stderr, "Sensor %hu in room %hu is too hot\n", id, data->room);}
                 }
+                else{data->running_avg = 0.0;}
                 break;
             }
             dummy = dummy->next;
@@ -86,9 +98,7 @@ void datamgr_free(){
 
 uint16_t datamgr_get_room_id(sensor_id_t sensor_id){
 
-    if (sensor_list == NULL) {
-        ERROR_HANDLER("datamgr_get_room_id: sensor list not initialized");
-    }
+    ERROR_HANDLER(sensor_list == NULL,"datamgr_get_room_id: sensor list not initialized");
 
     int size = dpl_size(sensor_list);
     for (int i = 0; i < size; i++) {
@@ -101,7 +111,7 @@ uint16_t datamgr_get_room_id(sensor_id_t sensor_id){
         }
     }
 
-    ERROR_HANDLER("datamgr_get_room_id: sensor ID does not exist");
+    ERROR_HANDLER(1,"datamgr_get_room_id: sensor ID does not exist");
 
     return 0;
 }
@@ -110,7 +120,7 @@ uint16_t datamgr_get_room_id(sensor_id_t sensor_id){
 sensor_value_t datamgr_get_avg(sensor_id_t sensor_id){
     if (sensor_list == NULL)
     {
-        ERROR_HANDLER("datamgr_get_avg: sensor list not initialized");
+        ERROR_HANDLER(1,"datamgr_get_avg: sensor list not initialized");
     }
 
     dplist_node_t *dummy = sensor_list->head;
@@ -132,7 +142,7 @@ sensor_value_t datamgr_get_avg(sensor_id_t sensor_id){
         }
         dummy = dummy->next;
     }
-    ERROR_HANDLER("datamgr_get_avg: sensor_id not found");
+    ERROR_HANDLER(1,"datamgr_get_avg: sensor_id not found");
     return 0;
 }
 
@@ -140,7 +150,7 @@ time_t datamgr_get_last_modified(sensor_id_t sensor_id)
 {
     if (sensor_list == NULL)
     {
-        ERROR_HANDLER("datamgr_get_last_modified: sensor list not initialized");
+        ERROR_HANDLER(1,"datamgr_get_last_modified: sensor list not initialized");
     }
 
     dplist_node_t *dummy = sensor_list->head;
@@ -154,14 +164,14 @@ time_t datamgr_get_last_modified(sensor_id_t sensor_id)
         }
         dummy = dummy->next;
     }
-    ERROR_HANDLER("datamgr_get_last_modified: sensor_id not found");
+    ERROR_HANDLER(1,"datamgr_get_last_modified: sensor_id not found");
     return 0;
 }
 
 int datamgr_get_total_sensors(){
     if (sensor_list == NULL)
     {
-        ERROR_HANDLER("datamgr_get_total_sensors: sensor list not initialized");
+        ERROR_HANDLER(1,"datamgr_get_total_sensors: sensor list not initialized");
     }
     return dpl_size(sensor_list);
 }
