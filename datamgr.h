@@ -14,11 +14,11 @@
 #endif
 
 #ifndef SET_MAX_TEMP
-#error SET_MAX_TEMP not set
+#error SET_MAX_TEMP 30
 #endif
 
 #ifndef SET_MIN_TEMP
-#error SET_MIN_TEMP not set
+#error SET_MIN_TEMP 0
 #endif
 
 /*
