@@ -1,7 +1,11 @@
+/**
+* \author {Diego Vallés}
+ */
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#include "lib/dplist.h"
+#include "dplist.h"
+
 
 
 dplist_t *dpl_create(// callback functions

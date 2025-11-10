@@ -1,5 +1,5 @@
 /**
- * \author {AUTHOR}
+ * \author {Diego Vallés}
  */
 
 #ifndef _CONFIG_H_

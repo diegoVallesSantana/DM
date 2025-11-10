@@ -1,3 +1,6 @@
+/**
+* \author {Diego Vallés}
+ */
 #include "lib/dplist.h"
 #include "config.h"
 #include "datamgr.h"
@@ -174,5 +177,14 @@ int datamgr_get_total_sensors(){
         ERROR_HANDLER(1,"datamgr_get_total_sensors: sensor list not initialized");
     }
     return dpl_size(sensor_list);
+}
+
+//for testing purpose
+
+sensor_id_t datamgr_get_sensor_id_at_index(int index) {
+    ERROR_HANDLER(sensor_list == NULL, "datamgr_get_sensor_id_at_index: list not initialized");
+    sensor_data_t *data = dpl_get_element_at_index(sensor_list, index);
+    ERROR_HANDLER(data == NULL, "datamgr_get_sensor_id_at_index: invalid index");
+    return data->id;
 }
 

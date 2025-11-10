@@ -1,5 +1,5 @@
 /**
- * \author {AUTHOR}
+ * \author {Diego Vallés}
  */
 
 #ifndef DATAMGR_H_
@@ -64,5 +64,8 @@ time_t datamgr_get_last_modified(sensor_id_t sensor_id);
  *  \return the total amount of sensors
  */
 int datamgr_get_total_sensors();
+
+//for testing purpose
+sensor_id_t datamgr_get_sensor_id_at_index(int index);
 
 #endif  //DATAMGR_H_
